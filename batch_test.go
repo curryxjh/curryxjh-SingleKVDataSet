@@ -45,6 +45,7 @@ func TestDB_NewWriteBatch1(t *testing.T) {
 
 	_, err = db.Get(utils.GetTestKey(1))
 	//t.Log(val2)
+
 	//t.Log(err)
 	assert.Equal(t, ErrKeyNotFound, err)
 }
@@ -80,7 +81,7 @@ func TestDB_NewReadBatch2(t *testing.T) {
 	assert.Nil(t, err)
 
 	db2, err := Open(opts)
-	//defer destroyDB(db2)
+	defer destroyDB(db2)
 	assert.Nil(t, err)
 
 	_, err = db2.Get(utils.GetTestKey(1))
@@ -91,7 +92,7 @@ func TestDB_NewReadBatch2(t *testing.T) {
 
 	// 校验序列号
 	//t.Log(db.seqNo)
-	//assert.Equal(t, uint64(2), db.seqNo)
+	assert.Equal(t, uint64(2), db.seqNo)
 }
 
 //
