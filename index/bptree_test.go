@@ -99,3 +99,29 @@ func TestBPlusTree_Size(t *testing.T) {
 	//t.Log(tree.Size())
 	assert.Equal(t, 4, tree.Size())
 }
+
+func TestBPlusTree_Iterator(t *testing.T) {
+	path := filepath.Join("../TestingFile", "bptree-iter")
+	_ = os.Mkdir(path, os.ModePerm)
+	defer func() {
+		_ = os.RemoveAll(path)
+	}()
+
+	tree := NewBPlusTree(path, false)
+	defer tree.Close()
+
+	tree.Put([]byte("abc"), &data.LogRecordPos{Fid: 123, Offset: 789})
+	tree.Put([]byte("aac"), &data.LogRecordPos{Fid: 123, Offset: 789})
+	tree.Put([]byte("dfc"), &data.LogRecordPos{Fid: 123, Offset: 789})
+	tree.Put([]byte("kbc"), &data.LogRecordPos{Fid: 123, Offset: 789})
+	tree.Put([]byte("aaa"), &data.LogRecordPos{Fid: 123, Offset: 789})
+	tree.Put([]byte("zah"), &data.LogRecordPos{Fid: 123, Offset: 789})
+
+	iter := tree.Iterator(true)
+	defer iter.Close()
+	for iter.Rewind(); iter.Valid(); iter.Next() {
+		//t.Log(string(iter.Key()), iter.Value())
+		assert.NotNil(t, iter.Key())
+		assert.NotNil(t, iter.Value())
+	}
+}
