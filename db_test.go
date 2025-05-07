@@ -15,6 +15,8 @@ func destroyDB(db *DB) {
 			if err != nil {
 				panic(err)
 			}
+		} else {
+			_ = db.Close()
 		}
 		err := os.RemoveAll(db.options.DirPath)
 		if err != nil {
@@ -299,5 +301,42 @@ func TestDB_Sync(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = db.Sync()
+	assert.Nil(t, err)
+}
+
+func TestDB_FileLock(t *testing.T) {
+	opts := DefaultOptions
+	dir, _ := os.MkdirTemp("./TestingFile", "bitcask-go-filelock")
+	opts.DirPath = dir
+	opts.DataFileSize = 64 * 1024 * 1024
+	db, err := Open(opts)
+	defer destroyDB(db)
+	//t.Log(db)
+	//t.Log(err)
+	assert.Nil(t, err)
+	assert.NotNil(t, db)
+
+	_, err = Open(opts)
+	//t.Log(err)
+	assert.Equal(t, ErrDatabaseIsUsing, err)
+}
+
+func TestDB_FileLock2(t *testing.T) {
+	opts := DefaultOptions
+	dir, _ := os.MkdirTemp("./TestingFile", "bitcask-go-filelock")
+	opts.DirPath = dir
+	opts.DataFileSize = 64 * 1024 * 1024
+	db, err := Open(opts)
+	assert.Nil(t, err)
+	assert.NotNil(t, db)
+
+	err = db.Close()
+	assert.Nil(t, err)
+
+	db2, err := Open(opts)
+	defer destroyDB(db2)
+	//t.Log(db2)
+	//t.Log(err)
+	assert.NotNil(t, db2)
 	assert.Nil(t, err)
 }

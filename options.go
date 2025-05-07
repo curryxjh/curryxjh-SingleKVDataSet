@@ -11,6 +11,9 @@ type Options struct {
 	// 每次写入之后是否需要执行一次安全的持久化
 	SyncWrites bool
 
+	// 累计写到多少字节后进行持久化
+	BytesPerSync uint
+
 	// 索引类型
 	IndexType IndexerType
 }
@@ -47,6 +50,7 @@ var DefaultOptions = Options{
 	DirPath:      "./TestingFile",
 	DataFileSize: 256 * 1024 * 1024, // 256MB
 	SyncWrites:   false,
+	BytesPerSync: 0,
 	IndexType:    BTree,
 }
 

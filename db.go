@@ -4,6 +4,8 @@ import (
 	"SingleKVDataSet/data"
 	"SingleKVDataSet/index"
 	"errors"
+	"fmt"
+	"github.com/gofrs/flock"
 	"io"
 	"os"
 	"path/filepath"
@@ -14,7 +16,8 @@ import (
 )
 
 const (
-	seqNoKey = "seq.no"
+	seqNoKey     = "seq.no"
+	fileLockName = "flock"
 )
 
 // 存放面向用户的操作接口
@@ -31,6 +34,8 @@ type DB struct {
 	isMerging       bool                      // 是否在进行Merge
 	seqNoFileExists bool                      // 存储事务序列号文件是否存在
 	isInitial       bool                      // 是否是第一次初始化此数据目录
+	fileLock        *flock.Flock              //文件锁，保证多进程之间的互斥
+	bytesWrite      uint                      //累计写了多少个字节
 }
 
 // Open 打开bitcask存储引擎实例
@@ -50,6 +55,16 @@ func Open(options Options) (*DB, error) {
 		}
 	}
 
+	// 判断当前数据目录是否正在使用
+	fileLock := flock.New(filepath.Join(options.DirPath, "bitcask-go-filelock"))
+	hold, err := fileLock.TryLock()
+	if err != nil {
+		return nil, err
+	}
+	if !hold {
+		return nil, ErrDatabaseIsUsing
+	}
+
 	entries, err := os.ReadDir(options.DirPath)
 	if err != nil {
 		return nil, err
@@ -65,6 +80,7 @@ func Open(options Options) (*DB, error) {
 		oldFiles:  make(map[uint32]*data.DataFile),
 		index:     index.NewIndexer(options.IndexType, options.DirPath, options.SyncWrites),
 		isInitial: isInitial,
+		fileLock:  fileLock,
 	}
 
 	// 加载数据目录
@@ -109,6 +125,11 @@ func Open(options Options) (*DB, error) {
 
 // Close 关闭数据库
 func (db *DB) Close() error {
+	defer func() {
+		if err := db.fileLock.Unlock(); err != nil {
+			panic(fmt.Sprintf("failed to unlock the directory,  %v", err))
+		}
+	}()
 	if db.activeFile == nil {
 		return nil
 	}
@@ -346,10 +367,20 @@ func (db *DB) appendLogRecord(logRecord *data.LogRecord) (*data.LogRecordPos, er
 		return nil, err
 	}
 
+	db.bytesWrite += uint(size)
+
 	// 根据用户配置决定，是否执行一次安全的持久化
-	if db.options.SyncWrites {
+	var needSync = db.options.SyncWrites
+	if !needSync && db.options.BytesPerSync > 0 && db.bytesWrite >= db.options.BytesPerSync {
+		needSync = true
+	}
+	if needSync {
 		if err := db.activeFile.Sync(); err != nil {
 			return nil, err
+		}
+		// 清空累计值
+		if db.bytesWrite > 0 {
+			db.bytesWrite = 0
 		}
 	}
 
