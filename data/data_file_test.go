@@ -1,6 +1,7 @@
 package data
 
 import (
+	"SingleKVDataSet/fio"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -8,21 +9,21 @@ import (
 func TestOpenDataFile(t *testing.T) {
 	tmpDir := "../TestingFile"
 	t.Log(tmpDir)
-	dataFile1, err := OpenDataFile(tmpDir, 0)
+	dataFile1, err := OpenDataFile(tmpDir, 0, fio.StandardFIO)
 	assert.Nil(t, err)
 	assert.NotNil(t, dataFile1)
 
-	dataFile2, err := OpenDataFile(tmpDir, 1)
+	dataFile2, err := OpenDataFile(tmpDir, 1, fio.StandardFIO)
 	assert.Nil(t, err)
 	assert.NotNil(t, dataFile2)
 
-	dataFile3, err := OpenDataFile(tmpDir, 1)
+	dataFile3, err := OpenDataFile(tmpDir, 1, fio.StandardFIO)
 	assert.Nil(t, err)
 	assert.NotNil(t, dataFile3)
 }
 
 func TestDataFile_Write(t *testing.T) {
-	dataFile, err := OpenDataFile("../TestingFile", 0)
+	dataFile, err := OpenDataFile("../TestingFile", 0, fio.StandardFIO)
 	assert.Nil(t, err)
 	assert.NotNil(t, dataFile)
 
@@ -37,19 +38,19 @@ func TestDataFile_Write(t *testing.T) {
 }
 
 func TestDataFile_Close(t *testing.T) {
-	dataFile, err := OpenDataFile("../TestingFile", 2)
+	dataFile, err := OpenDataFile("../TestingFile", 2, fio.StandardFIO)
 	assert.Nil(t, err)
 	assert.NotNil(t, dataFile)
 
 	err = dataFile.Write([]byte("ababababa"))
 	assert.Nil(t, err)
 
-	err = dataFile.close()
+	err = dataFile.Close()
 	assert.Nil(t, err)
 }
 
 func TestDataFile_Sync(t *testing.T) {
-	dataFile, err := OpenDataFile("../TestingFile", 3)
+	dataFile, err := OpenDataFile("../TestingFile", 3, fio.StandardFIO)
 	assert.Nil(t, err)
 	assert.NotNil(t, dataFile)
 
@@ -61,7 +62,7 @@ func TestDataFile_Sync(t *testing.T) {
 }
 
 func TestDataFile_ReadLogRecord(t *testing.T) {
-	dataFile, err := OpenDataFile("../TestingFile", 4)
+	dataFile, err := OpenDataFile("../TestingFile", 4, fio.StandardFIO)
 	assert.Nil(t, err)
 	assert.NotNil(t, dataFile)
 

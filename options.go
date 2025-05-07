@@ -16,6 +16,9 @@ type Options struct {
 
 	// 索引类型
 	IndexType IndexerType
+
+	// 启动时是否使用MMap加载数据
+	MMapAtStartup bool
 }
 
 // 索引迭代器配置项
@@ -47,11 +50,12 @@ const (
 )
 
 var DefaultOptions = Options{
-	DirPath:      "./TestingFile",
-	DataFileSize: 256 * 1024 * 1024, // 256MB
-	SyncWrites:   false,
-	BytesPerSync: 0,
-	IndexType:    BTree,
+	DirPath:       "./TestingFile",
+	DataFileSize:  256 * 1024 * 1024, // 256MB
+	SyncWrites:    false,
+	BytesPerSync:  0,
+	IndexType:     BTree,
+	MMapAtStartup: true,
 }
 
 var DefaultIteratorOptions = IteratorOptions{

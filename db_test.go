@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+	"time"
 )
 
 // 测试完成后销毁DB数据目录
@@ -338,5 +339,27 @@ func TestDB_FileLock2(t *testing.T) {
 	//t.Log(db2)
 	//t.Log(err)
 	assert.NotNil(t, db2)
+	assert.Nil(t, err)
+}
+
+func TestDB_OpenMMap(t *testing.T) {
+	opts := DefaultOptions
+	dir, _ := os.MkdirTemp("./TestingFile/MMap", "bitcask-go-mmap")
+	opts.DirPath = dir
+	opts.DataFileSize = 64 * 1024 * 1024
+	db, err := Open(opts)
+	assert.Nil(t, err)
+	assert.NotNil(t, db)
+
+	for i := 0; i < 10000; i++ {
+		err = db.Put(utils.GetTestKey(i), utils.RandomValue(i+2))
+		assert.Nil(t, err)
+	}
+	db.Close()
+	now := time.Now()
+	opts.MMapAtStartup = false
+	db2, err := Open(opts)
+	defer destroyDB(db2)
+	t.Log("open time: ", time.Since(now))
 	assert.Nil(t, err)
 }

@@ -1,7 +1,15 @@
 package fio
 
+const DataFilePerm = 0644
+
+type FileIOType = byte
+
 const (
-	DataFilePerm = 0644
+	// StandardFIO 标准文件IO
+	StandardFIO FileIOType = iota
+
+	// MemoryMap 内存文件映射
+	MemoryMap
 )
 
 // 抽象IO管理器接口，可以接入不同的IO类型，目前支持标准文件IO
@@ -23,6 +31,13 @@ type IOManager interface {
 }
 
 // 初始化 IOManager，目前仅支持标准IO
-func NewIOManager(filename string) (IOManager, error) {
-	return NewFileIOManager(filename)
+func NewIOManager(filename string, ioType FileIOType) (IOManager, error) {
+	switch ioType {
+	case StandardFIO:
+		return NewFileIOManager(filename)
+	case MemoryMap:
+		return NewMMapIOManager(filename)
+	default:
+		panic("unsupported io type")
+	}
 }

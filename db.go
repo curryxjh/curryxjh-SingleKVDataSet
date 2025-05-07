@@ -2,6 +2,7 @@ package SingleKVDataSet
 
 import (
 	"SingleKVDataSet/data"
+	"SingleKVDataSet/fio"
 	"SingleKVDataSet/index"
 	"errors"
 	"fmt"
@@ -103,6 +104,13 @@ func Open(options Options) (*DB, error) {
 		// 从数据文件加载索引
 		if err := db.loadIndexFromDataFiles(); err != nil {
 			return nil, err
+		}
+
+		// 重置IO类型为标准文件IO
+		if db.options.MMapAtStartup {
+			if err := db.resetIoType(); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -401,7 +409,7 @@ func (db *DB) setActiveDataFile() error {
 	}
 
 	// 打开新的数据文件
-	dataFile, err := data.OpenDataFile(db.options.DirPath, initialFileId)
+	dataFile, err := data.OpenDataFile(db.options.DirPath, initialFileId, fio.StandardFIO)
 
 	if err != nil {
 		return err
@@ -441,7 +449,11 @@ func (db *DB) loadDataFiles() error {
 
 	// 遍历每个文件的id，打开对应的数据文件
 	for i, fid := range fileIds {
-		dataFile, err := data.OpenDataFile(db.options.DirPath, uint32(fid))
+		ioType := fio.StandardFIO
+		if db.options.MMapAtStartup {
+			ioType = fio.MemoryMap
+		}
+		dataFile, err := data.OpenDataFile(db.options.DirPath, uint32(fid), ioType)
 		if err != nil {
 			return err
 		}
@@ -592,4 +604,20 @@ func (db *DB) loadSeqNo() error {
 	db.seqNoFileExists = true
 
 	return os.Remove(fileName)
+}
+
+// 将数据文件的IO类型设置为标准文件IO
+func (db *DB) resetIoType() error {
+	if db.activeFile == nil {
+		return nil
+	}
+	if err := db.activeFile.SetIOManager(db.options.DirPath, fio.StandardFIO); err != nil {
+		return err
+	}
+	for _, dataFile := range db.oldFiles {
+		if err := dataFile.SetIOManager(db.options.DirPath, fio.StandardFIO); err != nil {
+			return err
+		}
+	}
+	return nil
 }
