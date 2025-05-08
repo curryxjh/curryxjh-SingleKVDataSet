@@ -18,13 +18,18 @@ func TestBPlusTree_Put(t *testing.T) {
 	defer tree.Close()
 	res1 := tree.Put([]byte("abc"), &data.LogRecordPos{Fid: 123, Offset: 987})
 	//t.Log(res1)
-	assert.True(t, res1)
+	assert.Nil(t, res1)
 	res2 := tree.Put([]byte("drf"), &data.LogRecordPos{Fid: 123, Offset: 999})
 	//t.Log(res2)
-	assert.True(t, res2)
+	assert.Nil(t, res2)
 	res3 := tree.Put([]byte("hij"), &data.LogRecordPos{Fid: 123, Offset: 567})
 	//t.Log(res3)
-	assert.True(t, res3)
+	assert.Nil(t, res3)
+
+	res4 := tree.Put([]byte("abc"), &data.LogRecordPos{Fid: 223, Offset: 987})
+	//t.Log(res4)
+	assert.Equal(t, res4.Fid, uint32(123))
+	assert.Equal(t, res4.Offset, int64(987))
 }
 
 func TestBPlusTree_Get(t *testing.T) {

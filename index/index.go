@@ -9,7 +9,7 @@ import (
 // 抽象索引接口，后续如果需要接入其他数据结构，仅需要实现该接口即可
 type Indexer interface {
 	// Put 向索引中存储key对应的数据位置信息
-	Put(key []byte, pos *data.LogRecordPos) bool
+	Put(key []byte, pos *data.LogRecordPos) *data.LogRecordPos
 
 	// Get 根据key取出对应索引的位置信息
 	Get(key []byte) *data.LogRecordPos
@@ -46,7 +46,6 @@ func NewIndexer(typ IndexType, dirPath string, sync bool) Indexer {
 	case Btree:
 		return NewBTree()
 	case ART:
-		// todo
 		return NewART()
 	case BPTree:
 		return NewBPlusTree(dirPath, sync)

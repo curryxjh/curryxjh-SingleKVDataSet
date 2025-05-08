@@ -8,9 +8,16 @@ import (
 
 func TestAdaptiveRadixTree_Put(t *testing.T) {
 	art := NewART()
-	art.Put([]byte("key-1"), &data.LogRecordPos{Fid: 1, Offset: 12})
-	art.Put([]byte("key-2"), &data.LogRecordPos{Fid: 1, Offset: 12})
-	art.Put([]byte("key-3"), &data.LogRecordPos{Fid: 1, Offset: 12})
+	res1 := art.Put([]byte("key-1"), &data.LogRecordPos{Fid: 1, Offset: 12})
+	assert.Nil(t, res1)
+	res2 := art.Put([]byte("key-2"), &data.LogRecordPos{Fid: 1, Offset: 12})
+	assert.Nil(t, res2)
+	res3 := art.Put([]byte("key-3"), &data.LogRecordPos{Fid: 1, Offset: 12})
+	assert.Nil(t, res3)
+	res4 := art.Put([]byte("key-3"), &data.LogRecordPos{Fid: 1, Offset: 15})
+	//t.Log(res4)
+	assert.Equal(t, res4.Fid, uint32(1))
+	assert.Equal(t, res4.Offset, int64(12))
 }
 
 func TestAdaptiveRadixTree_Get(t *testing.T) {

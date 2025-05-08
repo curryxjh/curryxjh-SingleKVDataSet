@@ -23,11 +23,14 @@ func NewART() *AdaptiveRadixTree {
 }
 
 // Put 向索引中存储key对应的数据位置信息
-func (art *AdaptiveRadixTree) Put(key []byte, pos *data.LogRecordPos) bool {
+func (art *AdaptiveRadixTree) Put(key []byte, pos *data.LogRecordPos) *data.LogRecordPos {
 	art.lock.Lock()
-	art.tree.Insert(key, pos)
+	oldItem, _ := art.tree.Insert(key, pos)
 	art.lock.Unlock()
-	return true
+	if oldItem == nil {
+		return nil
+	}
+	return oldItem.(*data.LogRecordPos)
 }
 
 // Get 根据key取出对应索引的位置信息

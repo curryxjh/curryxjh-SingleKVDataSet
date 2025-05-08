@@ -39,19 +39,19 @@ func NewBPlusTree(dirPath string, syncWrites bool) *BPlusTree {
 }
 
 // Put 向索引中存储key对应的数据位置信息
-func (bpt *BPlusTree) Put(key []byte, pos *data.LogRecordPos) bool {
-	//var oldVal []byte
+func (bpt *BPlusTree) Put(key []byte, pos *data.LogRecordPos) *data.LogRecordPos {
+	var oldVal []byte
 	if err := bpt.tree.Update(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket(indexBucketName)
-		//bucket.Get(key)
+		oldVal = bucket.Get(key)
 		return bucket.Put(key, data.EncodeLogRecordPos(pos))
 	}); err != nil {
 		panic("failed to put key in BPlusTree")
 	}
-	//if len(oldVal) == 0 {
-	//	return true
-	//}
-	return true
+	if len(oldVal) == 0 {
+		return nil
+	}
+	return data.DecodeLogRecordPos(oldVal)
 }
 
 // Get 根据key取出对应索引的位置信息
