@@ -4,8 +4,17 @@ import (
 	"SingleKVDataSet/utils"
 	"github.com/stretchr/testify/assert"
 	"os"
+	"sync"
 	"testing"
 )
+
+// todo 测试的时候，清除掉merge的目录，需要调整一下，检测是否merge完成
+func destoryMergePath(db *DB) {
+	mergePath := db.getMergePath()
+	if err := os.RemoveAll(mergePath); err != nil {
+		panic(err)
+	}
+}
 
 // 没有任何数据的时候进行merge操作
 func TestDB_Merge(t *testing.T) {
@@ -18,6 +27,7 @@ func TestDB_Merge(t *testing.T) {
 	assert.NotNil(t, db)
 
 	err = db.Merge()
+	defer destoryMergePath(db)
 	//t.Log(err)
 	assert.Nil(t, err)
 }
@@ -46,6 +56,7 @@ func TestDB_Merge_Valid(t *testing.T) {
 	err = db.Close()
 	assert.Nil(t, err)
 	db2, err := Open(opts)
+	defer destoryMergePath(db2)
 	defer destroyDB(db2)
 	assert.Nil(t, err)
 
@@ -93,6 +104,7 @@ func TestDB_Merge_Valid_Invalid(t *testing.T) {
 	assert.Nil(t, err)
 
 	db2, err := Open(opts)
+	defer destoryMergePath(db2)
 	defer destroyDB(db2)
 	assert.Nil(t, err)
 
@@ -115,6 +127,7 @@ func TestDB_Merge_Valid_Invalid(t *testing.T) {
 func TestDB_Merge_Invalid(t *testing.T) {
 	opts := DefaultOptions
 	dir, _ := os.MkdirTemp("./TestingFile", "bitcask-go-merge-3")
+
 	opts.DirPath = dir
 	opts.DataFileSize = 32 * 1024 * 1024
 	opts.DataFileMergeRatio = 0
@@ -141,9 +154,66 @@ func TestDB_Merge_Invalid(t *testing.T) {
 	assert.Nil(t, err)
 
 	db2, err := Open(opts)
+	defer destoryMergePath(db2)
 	defer destroyDB(db2)
 	assert.Nil(t, err)
 
 	keys := db2.ListKeys()
 	assert.Equal(t, len(keys), 0)
+}
+
+// Merge的过程中有新的数据写入/删除
+func TestDB_Merge_Insert_Delete(t *testing.T) {
+	opts := DefaultOptions
+	dir, _ := os.MkdirTemp("./TestingFile", "bitcask-go-merge-3")
+
+	opts.DirPath = dir
+	opts.DataFileSize = 32 * 1024 * 1024
+	opts.DataFileMergeRatio = 0
+	db, err := Open(opts)
+	//defer destroyDB(db)
+	assert.Nil(t, err)
+	assert.NotNil(t, db)
+
+	for i := 0; i < 50000; i++ {
+		err := db.Put(utils.GetTestKey(i), utils.RandomValue(256))
+		assert.Nil(t, err)
+	}
+
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 50000; i++ {
+			err := db.Delete(utils.GetTestKey(i))
+			assert.Nil(t, err)
+		}
+
+		for i := 60000; i < 70000; i++ {
+			err := db.Put(utils.GetTestKey(i), utils.RandomValue(256))
+			assert.Nil(t, err)
+		}
+	}()
+
+	err = db.Merge()
+	assert.Nil(t, err)
+	wg.Wait()
+
+	// 重启后校验
+	err = db.Close()
+	assert.Nil(t, err)
+
+	db2, err := Open(opts)
+	defer destoryMergePath(db2)
+	defer destroyDB(db2)
+	assert.Nil(t, err)
+
+	keys := db2.ListKeys()
+	assert.Equal(t, len(keys), 10000)
+
+	for i := 60000; i < 70000; i++ {
+		val, err := db2.Get(utils.GetTestKey(i))
+		assert.Nil(t, err)
+		assert.NotNil(t, val)
+	}
 }
