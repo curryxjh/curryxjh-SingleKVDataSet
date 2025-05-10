@@ -67,7 +67,7 @@ func Open(options Options) (*DB, error) {
 	}
 
 	// 判断当前数据目录是否正在使用
-	fileLock := flock.New(filepath.Join(options.DirPath, "bitcask-go-filelock"))
+	fileLock := flock.New(filepath.Join(options.DirPath, fileLockName))
 	hold, err := fileLock.TryLock()
 	if err != nil {
 		return nil, err
@@ -223,6 +223,13 @@ func (db *DB) Stat() *Stat {
 		ReclaimableSize: db.reclaimSize,
 		DiskSize:        dirSize,
 	}
+}
+
+// Backup 备份数据库，将数据文件拷贝到新的目录中
+func (db *DB) Backup(dir string) error {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+	return utils.CopyDir(db.options.DirPath, dir, []string{fileLockName})
 }
 
 // Put 写入 Key/Value 数据，Key不能为空
