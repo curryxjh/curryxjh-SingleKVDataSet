@@ -115,6 +115,8 @@ func main() {
 	http.HandleFunc("/bitcask/listkeys", handleListKeys)
 	http.HandleFunc("/bitcask/stat", handleStat)
 
+	// todo 完成其他操作的http服务
+
 	// 启动HTTP服务
 	_ = http.ListenAndServe("localhost:8080", nil)
 }
