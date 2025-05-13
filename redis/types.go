@@ -166,11 +166,11 @@ func (rds *RedisDataStructure) HDel(key, field []byte) (bool, error) {
 			return false, err
 		}
 	}
-	return !exist, nil
+	return exist, nil
 }
 
 func (rds *RedisDataStructure) findMetadata(key []byte, dataType redisDataType) (*metadata, error) {
-	metaBuf, err := rds.Get(key)
+	metaBuf, err := rds.db.Get(key)
 	if err != nil && err != bitcask.ErrKeyNotFound {
 		return nil, err
 	}
