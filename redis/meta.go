@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"SingleKVDataSet/utils"
 	"encoding/binary"
 	"math"
 )
@@ -140,6 +141,60 @@ func (lk *listInternalKey) encode() []byte {
 	// index
 	binary.LittleEndian.PutUint64(buf[index:index+8], lk.index)
 	index += 8
+
+	return buf[:index]
+}
+
+type zsetInternalKey struct {
+	key     []byte
+	version int64
+	member  []byte
+	score   float64
+}
+
+func (zk *zsetInternalKey) encodeWithMeber() []byte {
+	buf := make([]byte, len(zk.key)+8+len(zk.member))
+
+	// key
+	var index = 0
+	copy(buf[index:index+len(zk.key)], zk.key)
+	index += len(zk.key)
+
+	// version
+	binary.LittleEndian.PutUint64(buf[index:index+8], uint64(zk.version))
+	index += 8
+
+	// member
+	copy(buf[index:index+len(zk.member)], zk.member)
+	index += len(zk.member)
+
+	return buf[:index]
+}
+
+func (zk *zsetInternalKey) encodeWithScore() []byte {
+	scoreBuf := utils.Float64ToBytes(zk.score)
+	buf := make([]byte, len(zk.key)+len(zk.member)+len(scoreBuf)+8+4)
+
+	// key
+	var index = 0
+	copy(buf[index:index+len(zk.key)], zk.key)
+	index += len(zk.key)
+
+	// version
+	binary.LittleEndian.PutUint64(buf[index:index+8], uint64(zk.version))
+	index += 8
+
+	// socre
+	copy(buf[index:index+len(scoreBuf)], scoreBuf)
+	index += len(scoreBuf)
+
+	// member
+	copy(buf[index:index+len(zk.member)], zk.member)
+	index += len(zk.member)
+
+	// member size
+	binary.LittleEndian.PutUint32(buf[index:index+4], uint32(len(zk.member)))
+	index += 4
 
 	return buf[:index]
 }
